@@ -227,3 +227,11 @@ function compileTemplateCallback(
 if (typeof window !== "undefined") {
   window.addEventListener("message", compileTemplateCallback);
 }
+
+export function extractTags(keywords: string) {
+  const regex = /\b(For|And|Nor|But|Or|Yet|So|how|to|on|in|at|a|an|step|by|list)\b\s?|,/gi;
+  const res = keywords.replace(regex, "").replace(/\b(\w+)\b/g, "#" + '$1');
+  let strings = res.split(/\s+/);
+  const words = Array.from(new Set(strings));
+  return words.join(", ");
+}
