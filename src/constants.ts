@@ -1,133 +1,141 @@
 import TurndownService from "turndown";
 
 import {
-  ExtensionLocalSettings,
-  ExtensionSyncSettings,
-  OutputPreset,
-  PreviewContext,
+    ExtensionLocalSettings,
+    ExtensionSyncSettings,
+    OutputPreset,
+    PreviewContext,
 } from "./types";
 
 export const MinVersion = "1.3.1";
 
 export const DefaultContentTemplate =
-  '---\npage-title: {{json page.title}}\nurl: {{page.url}}\ndate: "{{date}}"\n---\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}';
+    '---\npage-title: {{json page.title}}\nurl: {{page.url}}\ndate: "{{date}}"\n---\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}';
 export const DefaultUrlTemplate = "/vault/{{filename page.title}}.md";
 export const DefaultHeaders = {};
 export const DefaultMethod = "put";
 
 export const DefaultLocalSettings: ExtensionLocalSettings = {
-  version: "0.2",
-  host: "127.0.0.1",
-  insecureMode: false,
-  apiKey: "",
+    version: "0.2",
+    host: "127.0.0.1",
+    insecureMode: false,
+    apiKey: "",
 };
 
 export const DefaultPreviewContext: PreviewContext = {
-  page: {
-    url: "https://fortelabs.com/blog/para/",
-    title:
-      "The PARA Method: The Simple System for Organizing Your Digital Life in Seconds",
-    selectedText: "Imagine for a moment the perfect organizational system.",
-    content: "CONTENT",
-  },
-  article: {
-    title:
-      "The PARA Method: The Simple System for Organizing Your Digital Life in Seconds",
-    length: 1000,
-    excerpt:
-      "It’s called PARA – a simple, comprehensive, yet extremely flexible system for organizing any type of digital information across any platform.",
-    byline: "Tiago Forte",
-    dir: "ltr",
-    siteName: "Forte Labs",
-  },
+    page: {
+        url: "https://fortelabs.com/blog/para/",
+        title:
+            "The PARA Method: The Simple System for Organizing Your Digital Life in Seconds",
+        selectedText: "Imagine for a moment the perfect organizational system.",
+        content: "CONTENT",
+    },
+    article: {
+        title:
+            "The PARA Method: The Simple System for Organizing Your Digital Life in Seconds",
+        length: 1000,
+        excerpt:
+            "It’s called PARA – a simple, comprehensive, yet extremely flexible system for organizing any type of digital information across any platform.",
+        byline: "Tiago Forte",
+        dir: "ltr",
+        siteName: "Forte Labs",
+    },
 };
 
 export const KnownLocalSettingKeys = [
-  "version",
-  "host",
-  "insecureMode",
-  "apiKey",
+    "version",
+    "host",
+    "insecureMode",
+    "apiKey",
 ];
 
 export const DefaultSearchMatchTemplate: OutputPreset = {
-  contentTemplate:
-    "## {{date}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}",
-  headers: {},
-  method: "post",
+    contentTemplate:
+        "## {{date}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}",
+    headers: {},
+    method: "post",
 };
 
 export const JIRA_TICKET_TO_EXISTING_NOTE = "Append Jira ticket to existing note";
+export const SLACK_TO_NEW_NOTE = "Add Slack thread to new note";
 export const DefaultSyncSettings: ExtensionSyncSettings = {
-  version: "0.2",
-  presets: [
-    {
-      name: "Create new note",
-      urlTemplate: DefaultUrlTemplate,
-      contentTemplate: DefaultContentTemplate,
-      headers: DefaultHeaders,
-      method: DefaultMethod,
+    version: "0.2",
+    presets: [
+        {
+            name: "Create new note",
+            urlTemplate: DefaultUrlTemplate,
+            contentTemplate: DefaultContentTemplate,
+            headers: DefaultHeaders,
+            method: DefaultMethod,
+        },
+        {
+            name: "Append to existing note",
+            urlTemplate: "/active/",
+            contentTemplate:
+                "## {{json page.title}} [link]({{page.url}})\n {{date}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}\n{{#if page.metaTags}}\n\n{{page.metaTags}}\n{{/if}}",
+            headers: {},
+            method: "post",
+        },
+        {
+            name: JIRA_TICKET_TO_EXISTING_NOTE,
+            urlTemplate: "/active/",
+            contentTemplate:
+                "## {{json page.title}} [link]({{page.url}})\n {{date}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}\n{{#if page.jira}}\n\n{{page.jira}}\n{{/if}}",
+            headers: {},
+            method: "post",
+        },
+        {
+            name: SLACK_TO_NEW_NOTE,
+            urlTemplate: "/vault/slack/{{filename page.title}}.md",
+            contentTemplate: "---\npage-title: {{json page.title}}\nurl: {{page.url}}\ndate: \"{{date}}\"\n---\n## {{json page.title}}\n{{#if page.slack}}\n\n{{page.slack}}\n{{/if}}",
+            headers: DefaultHeaders,
+            method: DefaultMethod,
+        },
+        {
+            name: "Append to current daily note",
+            urlTemplate: "/periodic/daily/",
+            contentTemplate:
+                "## {{page.title}}\nURL: {{page.url}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}",
+            headers: {},
+            method: "post",
+        },
+        {
+            name: "Capture page snapshot",
+            urlTemplate: DefaultUrlTemplate,
+            contentTemplate:
+                '---\npage-title: {{json page.title}}\nurl: {{page.url}}\ndate: "{{date}}"\n---\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n\n---\n\n{{/if}}{{page.content}}',
+            headers: DefaultHeaders,
+            method: DefaultMethod,
+        },
+    ],
+    searchMatch: {
+        enabled: false,
+        backgroundEnabled: false,
+        mentions: {
+            suggestionEnabled: false,
+            template: DefaultSearchMatchTemplate,
+        },
+        direct: {
+            suggestionEnabled: true,
+            template: DefaultSearchMatchTemplate,
+        },
     },
-    {
-      name: "Append to existing note",
-      urlTemplate: "/active/",
-      contentTemplate:
-          "## {{json page.title}} [link]({{page.url}})\n {{date}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}\n{{#if page.metaTags}}\n\n{{page.metaTags}}\n{{/if}}",
-      headers: {},
-      method: "post",
-    },
-    {
-      name: JIRA_TICKET_TO_EXISTING_NOTE,
-      urlTemplate: "/active/",
-      contentTemplate:
-          "## {{json page.title}} [link]({{page.url}})\n {{date}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}\n{{#if page.jira}}\n\n{{page.jira}}\n{{/if}}",
-      headers: {},
-      method: "post",
-    },
-    {
-      name: "Append to current daily note",
-      urlTemplate: "/periodic/daily/",
-      contentTemplate:
-        "## {{page.title}}\nURL: {{page.url}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}",
-      headers: {},
-      method: "post",
-    },
-    {
-      name: "Capture page snapshot",
-      urlTemplate: DefaultUrlTemplate,
-      contentTemplate:
-        '---\npage-title: {{json page.title}}\nurl: {{page.url}}\ndate: "{{date}}"\n---\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n\n---\n\n{{/if}}{{page.content}}',
-      headers: DefaultHeaders,
-      method: DefaultMethod,
-    },
-  ],
-  searchMatch: {
-    enabled: false,
-    backgroundEnabled: false,
-    mentions: {
-      suggestionEnabled: false,
-      template: DefaultSearchMatchTemplate,
-    },
-    direct: {
-      suggestionEnabled: true,
-      template: DefaultSearchMatchTemplate,
-    },
-  },
 };
 
 export const KnownSyncSettingKeys = [
-  "version",
-  "presets",
-  "searchMatch",
-  "searchEnabled",
-  "searchBackgroundEnabled",
-  "searchMatchMentionTemplate",
-  "searchMatchDirectTemplate",
+    "version",
+    "presets",
+    "searchMatch",
+    "searchEnabled",
+    "searchBackgroundEnabled",
+    "searchMatchMentionTemplate",
+    "searchMatchDirectTemplate",
 ];
 
 export const TurndownConfiguration: TurndownService.Options = {
-  headingStyle: "atx",
-  hr: "---",
-  bulletListMarker: "-",
-  codeBlockStyle: "fenced",
-  emDelimiter: "*",
+    headingStyle: "atx",
+    hr: "---",
+    bulletListMarker: "-",
+    codeBlockStyle: "fenced",
+    emDelimiter: "*",
 };

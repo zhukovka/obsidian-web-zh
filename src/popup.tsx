@@ -49,7 +49,7 @@ import {
     unregisterCompileTemplateCallback,
 } from "./utils";
 import RequestParameters from "./components/RequestParameters";
-import {JIRA_TICKET_TO_EXISTING_NOTE, TurndownConfiguration} from "./constants";
+import {JIRA_TICKET_TO_EXISTING_NOTE, SLACK_TO_NEW_NOTE, TurndownConfiguration} from "./constants";
 import MentionNotice from "./components/MentionNotice";
 import {NativeSelect, Paper} from "@mui/material";
 
@@ -145,6 +145,7 @@ const Popup: React.FunctionComponent<Props> = ({sandbox}) => {
             return;
         }
         setJira();
+        setSlack();
         setFormMethod(selectedPreset.method);
         setFormUrl(selectedPreset.urlTemplate);
         setFormHeaders(selectedPreset.headers);
@@ -288,6 +289,7 @@ const Popup: React.FunctionComponent<Props> = ({sandbox}) => {
                 previewContext.page.content =
                     readabilityDataToMarkdown(pageReadability);
                 setJira();
+                setSlack();
             } catch (e) {
             }
             setPreviewContext(previewContext);
@@ -359,6 +361,21 @@ const Popup: React.FunctionComponent<Props> = ({sandbox}) => {
             previewContext.page.jira = htmlToMarkdown(jira);
         }
     }
+    const setSlack = () => {
+        try {
+            if (previewContext && selectedPreset?.name === SLACK_TO_NEW_NOTE) {
+                const threads_flexpane = document.querySelector('[data-qa="threads_flexpane"]');
+                const slack_list = threads_flexpane?.querySelectorAll('[data-qa="virtual-list-item"]');
+                let slack = "";
+                for (const item of slack_list || []) {
+                    slack += item.innerHTML;
+                }
+                previewContext.page.slack = htmlToMarkdown(slack);
+            }
+        } catch (e) {
+            console.log(e)
+        }
+    }
     const htmlToReadabilityData = (
         html: string,
         baseUrl: string
@@ -413,6 +430,7 @@ const Popup: React.FunctionComponent<Props> = ({sandbox}) => {
                 title: "Error",
                 message: `Could not send content to Obsidian: ${e}`,
             });
+            console.error(e)
             return;
         }
 
