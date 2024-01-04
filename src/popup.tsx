@@ -144,12 +144,13 @@ const Popup: React.FunctionComponent<Props> = ({sandbox}) => {
         if (!selectedPreset) {
             return;
         }
-
+        setJira();
         setFormMethod(selectedPreset.method);
         setFormUrl(selectedPreset.urlTemplate);
         setFormHeaders(selectedPreset.headers);
         setFormContent(selectedPreset.contentTemplate);
     }, [selectedPreset]);
+
     useEffect(() => {
         window.addEventListener("message", (message) => {
             if (
@@ -286,13 +287,7 @@ const Popup: React.FunctionComponent<Props> = ({sandbox}) => {
                 }
                 previewContext.page.content =
                     readabilityDataToMarkdown(pageReadability);
-                console.log("selectedPreset?.name", selectedPreset?.name)
-                if (pageReadability && selectedPreset?.name === JIRA_TICKET_TO_EXISTING_NOTE) {
-                    let descriptionHTML = window.document.getElementById('description-val')?.innerHTML || `<p>no description</p>`;
-                    let issuedetails = window.document.getElementById('issuedetails')?.outerHTML || `<p>no details</p>`;
-                    let jira = issuedetails + descriptionHTML;
-                    previewContext.page.jira = htmlToMarkdown(jira);
-                }
+                setJira();
             } catch (e) {
             }
             setPreviewContext(previewContext);
@@ -356,6 +351,14 @@ const Popup: React.FunctionComponent<Props> = ({sandbox}) => {
         setSelectedPreset(preset);
     }, [sandboxReady, presets, selectedPresetIdx]);
 
+    const setJira = () => {
+        if (previewContext && selectedPreset?.name === JIRA_TICKET_TO_EXISTING_NOTE) {
+            let descriptionHTML = window.document.getElementById('description-val')?.innerHTML || `<p>no description</p>`;
+            let issuedetails = window.document.getElementById('issuedetails')?.outerHTML || `<p>no details</p>`;
+            let jira = issuedetails + descriptionHTML;
+            previewContext.page.jira = htmlToMarkdown(jira);
+        }
+    }
     const htmlToReadabilityData = (
         html: string,
         baseUrl: string
