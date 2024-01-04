@@ -11,8 +11,24 @@ import {
   SandboxExceptionResponse,
   SearchJsonResponseItem,
   SandboxLoadedResponse,
+  BackgroundRequest,
+  CheckHasHostPermissionRequest,
+  RequestHostPermissionRequest,
+  CheckKeyboardShortcutRequest,
+  ObsidianRequest,
+  ObsidianResponse,
+  ObsidianResponseError,
 } from "./types";
-import { DefaultSyncSettings, DefaultLocalSettings } from "./constants";
+import {
+  DefaultSyncSettings,
+  DefaultLocalSettings,
+  KnownSyncSettingKeys,
+  KnownLocalSettingKeys,
+} from "./constants";
+import {
+  migrateLocalSettings,
+  migrateSyncSettings,
+} from "./settings_migrations";
 
 const HandlebarsCallbacks: Record<
   string,
@@ -26,14 +42,36 @@ const HandlebarsCallbacks: Record<
 export async function getSyncSettings(
   sync: chrome.storage.SyncStorageArea
 ): Promise<ExtensionSyncSettings> {
-  const settings = await sync.get(DefaultSyncSettings);
+  let settings = await sync.get(KnownSyncSettingKeys);
+
+  settings = await migrateSyncSettings(sync, settings);
+
+  for (const key in DefaultSyncSettings) {
+    if (settings[key] === undefined) {
+      settings[key] =
+        DefaultSyncSettings[key as keyof typeof DefaultSyncSettings];
+    }
+  }
+  await sync.set(settings);
+
   return settings as ExtensionSyncSettings;
 }
 
 export async function getLocalSettings(
   local: chrome.storage.LocalStorageArea
 ): Promise<ExtensionLocalSettings> {
-  const settings = await local.get(DefaultLocalSettings);
+  let settings = await local.get(KnownLocalSettingKeys);
+
+  settings = await migrateLocalSettings(local, settings);
+
+  for (const key in DefaultLocalSettings) {
+    if (settings[key] === undefined) {
+      settings[key] =
+        DefaultLocalSettings[key as keyof typeof DefaultLocalSettings];
+    }
+  }
+  await local.set(settings);
+
   return settings as ExtensionLocalSettings;
 }
 
@@ -60,40 +98,89 @@ export function normalizeCacheUrl(urlString: string): string {
   return url.toString();
 }
 
+export async function sendBackgroundRequest(
+  message: CheckHasHostPermissionRequest
+): Promise<boolean>;
+export async function sendBackgroundRequest(
+  message: RequestHostPermissionRequest
+): Promise<boolean>;
+export async function sendBackgroundRequest(
+  message: CheckKeyboardShortcutRequest
+): Promise<string>;
+export async function sendBackgroundRequest(
+  message: ObsidianRequest
+): Promise<ObsidianResponse | ObsidianResponseError>;
+export async function sendBackgroundRequest(
+  message: BackgroundRequest
+): Promise<unknown> {
+  return await chrome.runtime.sendMessage(message);
+}
+
+export async function checkHasHostPermission(host: string): Promise<boolean> {
+  return await sendBackgroundRequest({
+    type: "check-has-host-permission",
+    host,
+  });
+}
+
+export async function requestHostPermission(host: string): Promise<boolean> {
+  return await sendBackgroundRequest({
+    type: "request-host-permission",
+    host,
+  });
+}
+
+export async function checkKeyboardShortcut(): Promise<string> {
+  return await sendBackgroundRequest({
+    type: "check-keyboard-shortcut",
+  });
+}
+
 export async function openFileInObsidian(
-  apiKey: string,
-  insecureMode: boolean,
   filename: string
-): ReturnType<typeof obsidianRequest> {
-  return obsidianRequest(
-    apiKey,
-    `/open/${filename}`,
-    { method: "post" },
-    insecureMode
-  );
+): Promise<ObsidianResponse> {
+  return obsidianRequest(`/open/${filename}`, { method: "post" });
 }
 
 export async function getPageMetadata(
-  apiKey: string,
-  insecureMode: boolean,
   filename: string
 ): Promise<FileMetadataObject> {
-  const result = await obsidianRequest(
-    apiKey,
-    `/vault/${filename}`,
-    {
-      method: "get",
-      headers: {
-        Accept: "application/vnd.olrapi.note+json",
-      },
+  const result = await obsidianRequest(`/vault/${filename}`, {
+    method: "get",
+    headers: {
+      Accept: "application/vnd.olrapi.note+json",
     },
-    insecureMode
-  );
+  });
 
-  return await result.json();
+  return result.data as FileMetadataObject;
 }
 
-export async function getUrlMentions(
+export async function getUrlMentions(url: string): Promise<{
+  mentions: SearchJsonResponseItem[];
+  direct: SearchJsonResponseItem[];
+}> {
+  async function handleMentions() {
+    const result = await obsidianSearchRequest({
+      regexp: [`${escapeStringRegexp(url)}(?=\\s|\\)|$)`, { var: "content" }],
+    });
+    return result;
+  }
+
+  async function handleDirect() {
+    const result = await obsidianSearchRequest({
+      glob: [{ var: "frontmatter.url" }, url],
+    });
+    return result;
+  }
+
+  return {
+    mentions: await handleMentions(),
+    direct: await handleDirect(),
+  };
+}
+
+export async function _getUrlMentions(
+  hostname: string,
   apiKey: string,
   insecureMode: boolean,
   url: string
@@ -102,15 +189,27 @@ export async function getUrlMentions(
   direct: SearchJsonResponseItem[];
 }> {
   async function handleMentions() {
-    return await obsidianSearchRequest(apiKey, insecureMode, {
-      regexp: [`${escapeStringRegexp(url)}(?=\\s|\\)|$)`, { var: "content" }],
-    });
+    const result = await _obsidianSearchRequest(
+      hostname,
+      apiKey,
+      insecureMode,
+      {
+        regexp: [`${escapeStringRegexp(url)}(?=\\s|\\)|$)`, { var: "content" }],
+      }
+    );
+    return result;
   }
 
   async function handleDirect() {
-    return await obsidianSearchRequest(apiKey, insecureMode, {
-      glob: [{ var: "frontmatter.url" }, url],
-    });
+    const result = await _obsidianSearchRequest(
+      hostname,
+      apiKey,
+      insecureMode,
+      {
+        glob: [{ var: "frontmatter.url" }, url],
+      }
+    );
+    return result;
   }
 
   return {
@@ -120,11 +219,27 @@ export async function getUrlMentions(
 }
 
 export async function obsidianSearchRequest(
+  query: Record<string, any>
+): Promise<SearchJsonResponseItem[]> {
+  const result = await obsidianRequest("/search/", {
+    method: "post",
+    body: JSON.stringify(query),
+    headers: {
+      "Content-type": "application/vnd.olrapi.jsonlogic+json",
+    },
+  });
+
+  return result.data as SearchJsonResponseItem[];
+}
+
+export async function _obsidianSearchRequest(
+  hostname: string,
   apiKey: string,
   insecureMode: boolean,
   query: Record<string, any>
 ): Promise<SearchJsonResponseItem[]> {
-  const result = await obsidianRequest(
+  const result = await _obsidianRequest(
+    hostname,
     apiKey,
     "/search/",
     {
@@ -137,10 +252,30 @@ export async function obsidianSearchRequest(
     insecureMode
   );
 
-  return await result.json();
+  return (await result.json()) as SearchJsonResponseItem[];
 }
 
 export async function obsidianRequest(
+  path: string,
+  options: RequestInit
+): Promise<ObsidianResponse> {
+  const result = await sendBackgroundRequest({
+    type: "obsidian-request",
+    request: {
+      path: path,
+      options: options,
+    },
+  });
+
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+
+  return result;
+}
+
+export async function _obsidianRequest(
+  hostname: string,
   apiKey: string,
   path: string,
   options: RequestInit,
@@ -157,7 +292,7 @@ export async function obsidianRequest(
   };
 
   return fetch(
-    `http${insecureMode ? "" : "s"}://127.0.0.1:${
+    `http${insecureMode ? "" : "s"}://${hostname}:${
       insecureMode ? "27123" : "27124"
     }${path}`,
     requestOptions
@@ -165,14 +300,15 @@ export async function obsidianRequest(
 }
 
 export function compileTemplate(
+  sandbox: HTMLIFrameElement | null,
   template: string,
   context: Record<string, any>
 ): Promise<string> {
-  const result = new Promise<string>((resolve, reject) => {
-    const sandbox = document.getElementById(
-      "handlebars-sandbox"
-    ) as HTMLIFrameElement;
+  if (!sandbox || !sandbox.contentWindow) {
+    throw new Error("No sandbox available");
+  }
 
+  const result = new Promise<string>((resolve, reject) => {
     if (!sandbox.contentWindow) {
       throw new Error("No content window found for handlebars sandbox!");
     }
@@ -193,6 +329,23 @@ export function compileTemplate(
   });
 
   return result;
+}
+
+export function getWindowSelectionAsHtml(): string {
+  const selection = window.getSelection();
+  if (!selection) {
+    return "";
+  }
+  const contents = selection.getRangeAt(0).cloneContents();
+  const node = document.createElement("div");
+  node.appendChild(contents.cloneNode(true));
+  return node.innerHTML;
+}
+
+const compileTemplateCallbackController = new AbortController();
+
+export function unregisterCompileTemplateCallback(): void {
+  compileTemplateCallbackController.abort();
 }
 
 function compileTemplateCallback(
@@ -225,7 +378,9 @@ function compileTemplateCallback(
 }
 
 if (typeof window !== "undefined") {
-  window.addEventListener("message", compileTemplateCallback);
+  window.addEventListener("message", compileTemplateCallback, {
+    signal: compileTemplateCallbackController.signal,
+  });
 }
 
 export function extractTags(keywords: string) {

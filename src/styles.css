@@ -3,7 +3,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(chrome-extension://__MSG_@@extension_id__/Roboto-Regular.ttf);
+  src: local("Roboto"), url(chrome-extension://__MSG_@@extension_id__/Roboto-Regular.ttf);
 }
 
 @font-face {
@@ -26,8 +26,54 @@ body.options #root {
   margin: 20px;
 }
 
-body.popup {
+p.popup-text {
+  font-size: 16px;
+  margin-top: 0px;
+  margin-bottom: 20px;
+}
+
+div.background {
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgb(100, 100, 100, 0.33);
+
+  opacity: 0;
+  transition: opacity 0.25s linear;
+}
+
+div.background.displayed {
+  opacity: 100;
+  transition: opacity 0.25s linear;
+}
+
+div.popup {
+  opacity: 0.95;
+  border-radius: 10px;
   width: 600px;
+  position: fixed;
+  right: 25px;
+  top: 25px;
+  z-index: 9999999;
+  font-family: Roboto, Helvetica, Arial, sans-serif;
+  max-height: 95vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+div.popup div.preset-selector {
+  padding-left: 10px;
+}
+
+div.popup .MuiAccordion-root {
+  font-size: 12px;
+  color: lightgray;
+}
+
+div.auth-field {
+  width: 90%;
 }
 
 div.option-value {
@@ -37,11 +83,11 @@ div.option-value {
   justify-content: space-between;
 }
 
-div.option-value.api-key {
+div.option-value.host, div.option-value.api-key {
   justify-content: left;
 }
 
-div.api-key-valid-icon svg {
+div.validation-icon svg {
   margin-top: 30%;
 }
 
@@ -52,10 +98,31 @@ div.submit {
 }
 
 div.modal {
+  display: flex;
+  flex-direction: column;
   margin: 50px 100px;
   padding: 25px;
-  overflow-y: scroll;
+  overflow-y: auto;
+  overflow-x: hidden;
   max-height: calc(100vh - 200px);
+}
+
+svg.action-icon {
+  cursor: pointer;
+}
+
+.permission-modal {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  height: 200px;
+  padding: 25px;
+  margin: 0 auto;
+  margin-top: 25vh;
+}
+
+.modal-content {
+  flex-grow: 1;
 }
 
 div.options-header {
@@ -78,9 +145,14 @@ div.options-container {
   padding: 10px 50px;
 }
 
+div.options-container .MuiPaper-root {
+  margin-bottom: 10px;
+}
+
 div.loading {
   display: flex;
   flex-direction: column;
+  padding: 20px;
 }
 
 div.loading > p {
@@ -141,4 +213,53 @@ div.protip p {
 .send-to-obsidian {
   width: 56px;
   height: 56px;
+}
+
+.send-to-obsidian-icon {
+  width: 30px;
+  height: 30px;
+}
+
+.MuiAlert-message {
+  flex-grow: 1
+}
+
+p.request-params-no-url-notice {
+  flex-grow: 1;
+  margin: auto 10px;
+  color: gray;
+  font-style: italic;
+}
+
+.method-select {
+  min-width: 80px;
+}
+
+.template-input-stack {
+  flex-grow: 1;
+}
+
+.template-content {
+  flex-grow: 1;
+}
+
+.template-rendered-preview {
+  flex-grow: 1;
+  padding: 5px;
+  width: 100%;
+  font-size: 16px;
+  margin: 0px;
+  overflow: auto;
+  color: #7a61cb;
+  font-size: 10px;
+}
+
+.preview-content.url {
+  margin-bottom: 12px;
+  margin-left: 80px;
+}
+
+.drag-handle {
+  height: 10px;
+  background-color: gray;
 }

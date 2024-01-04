@@ -15,21 +15,19 @@ Handlebars.registerHelper("quote", (value: string): string => {
   return lines.join("\n");
 });
 
-Handlebars.registerHelper(
-  "date",
-  (format: string | { [key: string]: string }): string => {
-    const now = new Date();
-    let formatStr: string = "yyyy-MM-dd HH:mm:ss";
-    if (typeof format === "string") {
-      formatStr = format;
-    }
-    return formatDate(now, formatStr);
+Handlebars.registerHelper("date", (format: string | unknown): string => {
+  const now = new Date();
+  // Helpers are handed extra args by default -- we need to check
+  // whether `format` above is what we're looking for (a string)
+  if (typeof format !== "string") {
+    format = "yyyy-MM-dd HH:mm:ss";
   }
-);
+  return formatDate(now, format as string);
+});
 
 Handlebars.registerHelper("filename", (unsafe: string | undefined): string => {
   if (typeof unsafe === "string") {
-    return unsafe.replace(/[/\\?%*:|"<>]/g, "");
+    return unsafe.replace(/[/\\?%*:|"<>#]/g, "");
   }
   return "";
 });
@@ -76,6 +74,7 @@ function handleEvent(evt: MessageEvent<SandboxRequest>): void {
     (evt.source as WindowProxy).postMessage(
       {
         success: false,
+        type: "response",
         request: evt.data,
         message: (e as Error).message,
       },
@@ -85,4 +84,7 @@ function handleEvent(evt: MessageEvent<SandboxRequest>): void {
 }
 
 window.addEventListener("message", handleEvent);
-window.parent.postMessage({ success: true, thpe: "loaded" }, "*");
+window.parent.postMessage(
+  { source: "obsidian-web-sandbox", success: true },
+  "*"
+);

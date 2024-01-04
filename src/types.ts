@@ -1,15 +1,24 @@
 import { AlertProps } from "@mui/material/Alert";
 
 export interface OutputPreset {
-  name: string;
-  urlTemplate: string;
   contentTemplate: string;
   headers: Record<string, string>;
   method: "post" | "put" | "patch";
 }
 
+export interface UrlOutputPreset extends OutputPreset {
+  name: string;
+  urlTemplate: string;
+}
+
+export interface ConfiguredTemplate extends OutputPreset {
+  name?: string;
+  urlTemplate?: string;
+}
+
 export interface ExtensionLocalSettings {
   version: string;
+  host: string;
   apiKey: string;
   insecureMode?: boolean;
 }
@@ -22,13 +31,30 @@ export interface ContentCache {
   compiledContent?: string;
 }
 
-export interface ExtensionSyncSettings {
+export interface ExtensionSyncSettings__0_1 {
   version: string;
-  presets: OutputPreset[];
+  presets: UrlOutputPreset[];
   searchEnabled: boolean;
   searchBackgroundEnabled: boolean;
   searchMatchMentionTemplate: string;
   searchMatchDirectTemplate: string;
+}
+
+export interface ExtensionSyncSettings {
+  version: string;
+  presets: UrlOutputPreset[];
+  searchMatch: {
+    enabled: boolean;
+    backgroundEnabled: boolean;
+    mentions: {
+      suggestionEnabled: boolean;
+      template: OutputPreset;
+    };
+    direct: {
+      suggestionEnabled: boolean;
+      template: OutputPreset;
+    };
+  };
 }
 
 export interface AlertStatus {
@@ -97,4 +123,65 @@ export interface FileMetadataObject {
   frontmatter: Record<string, unknown>;
   path: string;
   content: string;
+}
+
+export interface BaseBackgroundRequest {
+  type: string;
+}
+
+export interface RequestHostPermissionRequest extends BaseBackgroundRequest {
+  type: "request-host-permission";
+  host: string;
+}
+
+export interface CheckHasHostPermissionRequest extends BaseBackgroundRequest {
+  type: "check-has-host-permission";
+  host: string;
+}
+
+export interface CheckKeyboardShortcutRequest extends BaseBackgroundRequest {
+  type: "check-keyboard-shortcut";
+}
+
+export interface ObsidianRequest extends BaseBackgroundRequest {
+  type: "obsidian-request";
+  request: {
+    path: string;
+    options: RequestInit;
+  };
+}
+
+export type BackgroundRequest =
+  | RequestHostPermissionRequest
+  | CheckHasHostPermissionRequest
+  | CheckKeyboardShortcutRequest
+  | ObsidianRequest;
+
+export interface ObsidianResponse {
+  ok: true;
+  data?: Record<string, any>;
+  status: number;
+  headers: Record<string, string>;
+}
+
+export interface ObsidianResponseError {
+  ok: false;
+  error: string;
+}
+
+export interface PreviewContext {
+  page: {
+    url: string;
+    title: string;
+    selectedText: string;
+    content: string;
+  };
+  article: {
+    title?: string;
+    length?: number;
+    excerpt?: string;
+    byline?: string;
+    dir?: string;
+    siteName?: string;
+  };
 }

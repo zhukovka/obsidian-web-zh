@@ -3,64 +3,55 @@ import MaterialAlert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 import IconButton from "@mui/material/IconButton";
 
-import UpgradeIcon from "@mui/icons-material/Upgrade";
+import UseSuggestionIcon from "@mui/icons-material/ArrowCircleDown";
 
-import { OutputPreset, SearchJsonResponseItem } from "../types";
+import { SearchJsonResponseItem, OutputPreset } from "../types";
 import { openFileInObsidian } from "../utils";
 
 export interface Props {
-  apiKey: string;
-  insecureMode: boolean;
   type: "mention" | "direct";
-  templateSuggestion: string | undefined;
+  templateSuggestion: OutputPreset | undefined;
   mention: SearchJsonResponseItem;
-  presets: OutputPreset[];
-  acceptSuggestion: (filename: string, template: string) => void;
-  directReferenceMessages: string[];
+  acceptSuggestion: (filename: string, template: OutputPreset) => void;
+  directReferenceMessages?: string[];
 }
 
 const MentionNotice: React.FC<Props> = ({
   type,
   templateSuggestion,
-  apiKey,
-  insecureMode,
-  presets,
   mention,
   acceptSuggestion,
   directReferenceMessages,
 }) => {
-  const preset = presets.find((val) => val.name === templateSuggestion);
-
   return (
     <MaterialAlert
       severity={type === "direct" ? "warning" : "info"}
       className="mention-notice"
       key={mention.filename}
     >
-      {preset && (
+      {templateSuggestion && (
         <IconButton
-          onClick={() => acceptSuggestion(mention.filename, preset.name)}
+          onClick={() => acceptSuggestion(mention.filename, templateSuggestion)}
           className="mention-cta"
           aria-label="Use existing note"
           title="Use existing note"
         >
-          <UpgradeIcon />
+          <UseSuggestionIcon />
         </IconButton>
       )}
       {type === "direct" && <>This URL has a dedicated note: </>}
       {type === "mention" && <>This URL is mentioned in an existing note: </>}
       <Link
         title="Open in Obsidian"
-        onClick={() =>
-          openFileInObsidian(apiKey, insecureMode, mention.filename)
-        }
+        onClick={() => openFileInObsidian(mention.filename)}
       >
         {mention.filename}
       </Link>
       .
-      {directReferenceMessages.map((mention) => {
-        return <blockquote>{mention}</blockquote>;
-      })}
+      {directReferenceMessages &&
+        directReferenceMessages.map((mention) => {
+          return <blockquote>{mention}</blockquote>;
+        })}
     </MaterialAlert>
   );
 };
