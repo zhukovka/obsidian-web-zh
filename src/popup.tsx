@@ -62,6 +62,7 @@ const Popup = () => {
     const [title, setTitle] = useState<string>("");
     const [selection, setSelection] = useState<string>("");
     const [pageContent, setPageContent] = useState<string>("");
+    const [jira, setJira] = useState<string>("");
     const [metaTags, setMetaTags] = useState<string>("");
 
     const [suggestionAccepted, setSuggestionAccepted] = useState<boolean>(false);
@@ -255,6 +256,25 @@ const Popup = () => {
                 pageContent = "";
             }
 
+            let jiraTicket = '';
+            try {
+                const pageContentInjected = await chrome.scripting.executeScript({
+                    target: {tabId: tab.id},
+                    func: () => {
+                        let descriptionHTML = window.document.getElementById('description-val')?.innerHTML || `<p>no description</p>`;
+                        let issuedetails = window.document.getElementById('issuedetails')?.outerHTML || `<p>no details</p>`;
+                        return issuedetails + descriptionHTML;
+                    },
+                });
+
+                jiraTicket = htmlToMarkdown(
+                    pageContentInjected[0].result,
+                    tab.url ?? ""
+                );
+            } catch (e) {
+
+            }
+
             let _metaTags = "tags";
 
             try {
@@ -308,6 +328,7 @@ const Popup = () => {
             setSelection(selectedText);
             setPageContent(pageContent);
             setMetaTags(_metaTags);
+            setJira(jiraTicket);
         }
 
         handle();
@@ -363,6 +384,7 @@ const Popup = () => {
                     selectedText: selection,
                     content: pageContent,
                     metaTags: metaTags,
+                    jira: jira
                 },
             };
 

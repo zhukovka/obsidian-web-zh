@@ -35,6 +35,14 @@ export const DefaultSyncSettings: ExtensionSyncSettings = {
       method: "post",
     },
     {
+      name: "Append Jira ticket to existing note",
+      urlTemplate: "/active/",
+      contentTemplate:
+          "## {{json page.title}} [link]({{page.url}})\n {{date}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}\n{{#if page.jira}}\n\n{{page.jira}}\n{{/if}}",
+      headers: {},
+      method: "post",
+    },
+    {
       name: "Append to current daily note",
       urlTemplate: "/periodic/daily/",
       contentTemplate:
