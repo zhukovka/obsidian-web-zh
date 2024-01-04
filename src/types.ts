@@ -175,6 +175,7 @@ export interface PreviewContext {
     title: string;
     selectedText: string;
     content: string;
+    jira?: string;
   };
   article: {
     title?: string;

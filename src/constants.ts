@@ -56,6 +56,7 @@ export const DefaultSearchMatchTemplate: OutputPreset = {
   method: "post",
 };
 
+export const JIRA_TICKET_TO_EXISTING_NOTE = "Append Jira ticket to existing note";
 export const DefaultSyncSettings: ExtensionSyncSettings = {
   version: "0.2",
   presets: [
@@ -75,7 +76,7 @@ export const DefaultSyncSettings: ExtensionSyncSettings = {
       method: "post",
     },
     {
-      name: "Append Jira ticket to existing note",
+      name: JIRA_TICKET_TO_EXISTING_NOTE,
       urlTemplate: "/active/",
       contentTemplate:
           "## {{json page.title}} [link]({{page.url}})\n {{date}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}\n{{#if page.jira}}\n\n{{page.jira}}\n{{/if}}",
@@ -86,7 +87,7 @@ export const DefaultSyncSettings: ExtensionSyncSettings = {
       name: "Append to current daily note",
       urlTemplate: "/periodic/daily/",
       contentTemplate:
-          "## {{page.title}}\nURL: {{page.url}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}",
+        "## {{page.title}}\nURL: {{page.url}}\n{{#if page.selectedText}}\n\n{{quote page.selectedText}}\n{{/if}}",
       headers: {},
       method: "post",
     },
